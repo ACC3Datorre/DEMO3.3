@@ -10,7 +10,11 @@
 //   - R        : reset (vuelve al primer paso vía Esc nativo)
 // =============================================================
 
-import { $id, $$, sleep, prefersReducedMotion } from './utils.js';
+import { $id, $$, sleep } from './utils.js';
+
+/** Detecta si el usuario prefiere movimiento reducido. */
+const prefersReducedMotion = () =>
+  window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const STEP_DELAY = prefersReducedMotion() ? 250 : 1800;
 
