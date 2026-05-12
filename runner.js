@@ -12,11 +12,8 @@
 
 import { $id, $$, sleep } from './utils.js';
 
-/** Detecta si el usuario prefiere movimiento reducido. */
-const prefersReducedMotion = () =>
-  window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-const STEP_DELAY = prefersReducedMotion() ? 250 : 1800;
+// Delay fijo entre pasos para que se vea el proceso. Subilo/bajalo a gusto.
+const STEP_DELAY = 1800;
 
 let running = false;
 let cancelToken = 0; // sube cada vez que se cancela; si el loop ve cambio, frena
