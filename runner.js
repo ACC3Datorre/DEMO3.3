@@ -1,181 +1,210 @@
 // =============================================================
 // runner.js
 // Botón "Ejecutar demo" + autoplay por pasos.
-//
-// No toca app.js: simula clicks en el stepper (.step[data-step])
-// para avanzar, igual que si el usuario clickeara.
-//
-// Atajos:
-//   - Espacio  : play / pausa
-//   - R        : reset (vuelve al primer paso vía Esc nativo)
+// Versión simple y robusta. Loguea en consola para debug.
 // =============================================================
 
-import { $id, $$, sleep } from './utils.js';
-
-// Delay fijo entre pasos para que se vea el proceso. Subilo/bajalo a gusto.
+// Delay fijo entre pasos (ms). Subilo/bajalo a gusto.
 const STEP_DELAY = 1800;
 
 let running = false;
-let cancelToken = 0; // sube cada vez que se cancela; si el loop ve cambio, frena
+let timeoutId = null;
+
+const log = (...a) => console.log('[runner]', ...a);
 
 /** Devuelve los .step actualmente renderizados. */
 function getSteps() {
-  return $$('.step', $id('steps'));
+  return Array.from(document.querySelectorAll('#steps .step'));
 }
 
-/** Índice del paso activo en el stepper. */
+/** Índice del paso activo. */
 function getActiveIdx() {
-  const steps = getSteps();
-  return steps.findIndex((el) => el.classList.contains('active'));
+  return getSteps().findIndex((el) => el.classList.contains('active'));
 }
 
-/** Hace click en el paso `i` para que app.js lo active. */
+/** Click sobre el paso `i`. */
 function clickStep(i) {
-  // El stepper se re-renderiza en cada cambio, así que buscamos el nodo "fresco"
   const steps = getSteps();
-  if (i >= 0 && i < steps.length) {
+  if (i >= 0 && i < steps.length && steps[i]) {
+    log('click step', i);
     steps[i].click();
   }
 }
 
-/** Va al primer paso. Usa la tecla Escape que app.js ya maneja. */
-function resetToFirst() {
-  // Dispatch keydown Escape — app.js lo escucha globalmente
-  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-}
-
-/** Actualiza el botón según el estado. */
+/** Pinta el botón según estado. */
 function paintButton(btn, mode) {
   const label = btn.querySelector('.run-label');
   const icon = btn.querySelector('.run-icon');
+  btn.classList.remove('running', 'done');
+  document.body.classList.remove('is-running');
+
   if (mode === 'running') {
     btn.classList.add('running');
-    btn.classList.remove('done');
     document.body.classList.add('is-running');
-    icon.textContent = '■';
-    label.textContent = 'Detener';
+    if (icon) icon.textContent = '■';
+    if (label) label.textContent = 'Detener';
   } else if (mode === 'done') {
-    btn.classList.remove('running');
     btn.classList.add('done');
-    document.body.classList.remove('is-running');
-    icon.textContent = '↻';
-    label.textContent = 'Reiniciar';
+    if (icon) icon.textContent = '↻';
+    if (label) label.textContent = 'Reiniciar';
   } else {
-    btn.classList.remove('running');
-    btn.classList.remove('done');
-    document.body.classList.remove('is-running');
-    icon.textContent = '▶';
-    label.textContent = 'Ejecutar demo';
+    if (icon) icon.textContent = '▶';
+    if (label) label.textContent = 'Ejecutar demo';
   }
 }
 
-/** Loop principal: avanza paso a paso hasta el final o hasta que se cancele. */
-async function runDemo(btn) {
-  if (running) return;
-
-  // Si estoy parado en el último paso, primero hago reset.
-  const steps0 = getSteps();
-  if (steps0.length && getActiveIdx() === steps0.length - 1) {
-    resetToFirst();
-    await sleep(250);
-  }
-
-  running = true;
-  const myToken = ++cancelToken;
-  paintButton(btn, 'running');
-
-  // Avanzo desde el paso actual hasta el final.
-  while (running && myToken === cancelToken) {
-    const steps = getSteps();
-    const cur = getActiveIdx();
-    if (cur === -1 || cur >= steps.length - 1) break;
-
-    clickStep(cur + 1);
-    await sleep(STEP_DELAY);
-  }
-
-  if (myToken === cancelToken) {
-    running = false;
-    const steps = getSteps();
-    const done = steps.length && getActiveIdx() === steps.length - 1;
-    paintButton(btn, done ? 'done' : 'idle');
-  }
-}
-
-/** Detiene el autoplay sin tocar el paso actual. */
-function stopDemo(btn) {
-  running = false;
-  cancelToken++;
+/** Loop recursivo con setTimeout. */
+function tick(btn) {
+  if (!running) return;
   const steps = getSteps();
-  const done = steps.length && getActiveIdx() === steps.length - 1;
+  const cur = getActiveIdx();
+
+  log('tick · paso actual:', cur, 'total:', steps.length);
+
+  if (cur === -1 || cur >= steps.length - 1) {
+    running = false;
+    paintButton(btn, 'done');
+    log('terminado');
+    return;
+  }
+
+  clickStep(cur + 1);
+  timeoutId = setTimeout(() => tick(btn), STEP_DELAY);
+}
+
+/** Empieza la demo. */
+function start(btn) {
+  if (running) return;
+  log('start');
+
+  const steps = getSteps();
+  if (steps.length === 0) {
+    log('ERROR: no hay pasos en el stepper');
+    alert('No se encontraron pasos. Recargá la página.');
+    return;
+  }
+
+  if (getActiveIdx() === steps.length - 1) {
+    clickStep(0);
+    setTimeout(() => realStart(btn), 300);
+  } else {
+    realStart(btn);
+  }
+}
+
+function realStart(btn) {
+  running = true;
+  paintButton(btn, 'running');
+  timeoutId = setTimeout(() => tick(btn), STEP_DELAY);
+}
+
+/** Detiene la demo. */
+function stop(btn) {
+  log('stop');
+  running = false;
+  if (timeoutId) {
+    clearTimeout(timeoutId);
+    timeoutId = null;
+  }
+  const steps = getSteps();
+  const done = steps.length > 0 && getActiveIdx() === steps.length - 1;
   paintButton(btn, done ? 'done' : 'idle');
 }
 
-/** Inserta el botón en la top bar (a la izquierda del theme toggle). */
+/** Inyecta el botón en la top bar. */
 function injectButton() {
   const top = document.querySelector('.top');
-  const themeBtn = $id('themeToggle');
-  if (!top || !themeBtn) return null;
+  const themeBtn = document.getElementById('themeToggle');
 
-  const btn = document.createElement('button');
+  if (!top) {
+    log('ERROR: no se encontró .top');
+    return null;
+  }
+
+  let btn = document.getElementById('runBtn');
+  if (btn) {
+    log('botón ya existe, lo reuso');
+    return btn;
+  }
+
+  btn = document.createElement('button');
   btn.id = 'runBtn';
   btn.type = 'button';
   btn.className = 'run-btn';
   btn.setAttribute('aria-label', 'Ejecutar la demo');
-  btn.innerHTML = `<span class="run-icon">▶</span><span class="run-label">Ejecutar demo</span>`;
-  top.insertBefore(btn, themeBtn);
+  btn.innerHTML = '<span class="run-icon">▶</span><span class="run-label">Ejecutar demo</span>';
+
+  if (themeBtn) {
+    top.insertBefore(btn, themeBtn);
+  } else {
+    top.appendChild(btn);
+  }
+
+  log('botón inyectado');
   return btn;
 }
 
-/** Si el usuario cambia de tab manualmente mientras corre, detenemos. */
-function watchTabChange(btn) {
-  $$('.tab').forEach((t) => {
+/** Init con reintentos por si app.js no terminó. */
+function init(attempt = 0) {
+  log('init · intento', attempt);
+
+  const btn = injectButton();
+  if (!btn) {
+    if (attempt < 10) setTimeout(() => init(attempt + 1), 200);
+    return;
+  }
+
+  const steps = getSteps();
+  log('pasos encontrados:', steps.length);
+
+  if (steps.length === 0 && attempt < 10) {
+    setTimeout(() => init(attempt + 1), 200);
+    return;
+  }
+
+  btn.addEventListener('click', () => {
+    log('click en botón. running=', running);
+    if (running) stop(btn);
+    else start(btn);
+  });
+
+  const stepsContainer = document.getElementById('steps');
+  if (stepsContainer) {
+    stepsContainer.addEventListener('click', (e) => {
+      if (running && e.target.closest('.step')) {
+        log('click manual en stepper, deteniendo');
+        stop(btn);
+      }
+    }, true);
+  }
+
+  document.querySelectorAll('.tab').forEach((t) => {
     t.addEventListener('click', () => {
-      if (running) stopDemo(btn);
-    });
-  });
-}
-
-/** Si el usuario clickea un paso o usa flechas mientras corre, detenemos. */
-function watchManualNav(btn) {
-  $id('steps').addEventListener('click', () => {
-    if (running) stopDemo(btn);
-  }, true); // capture para llegar antes que el handler del stepper
-
-  document.addEventListener('keydown', (e) => {
-    if (!running) return;
-    const tag = (e.target.tagName || '').toLowerCase();
-    if (tag === 'input' || tag === 'textarea') return;
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Escape') {
-      stopDemo(btn);
-    }
-  });
-}
-
-/** Init. */
-document.addEventListener('DOMContentLoaded', () => {
-  // Espera un tick para que app.js termine de renderizar el stepper.
-  setTimeout(() => {
-    const btn = injectButton();
-    if (!btn) return;
-
-    btn.addEventListener('click', () => {
-      if (running) stopDemo(btn);
-      else runDemo(btn);
-    });
-
-    watchTabChange(btn);
-    watchManualNav(btn);
-
-    // Atajo Espacio: play / pause
-    document.addEventListener('keydown', (e) => {
-      const tag = (e.target.tagName || '').toLowerCase();
-      if (tag === 'input' || tag === 'textarea') return;
-      if (e.key === ' ') {
-        e.preventDefault();
-        if (running) stopDemo(btn);
-        else runDemo(btn);
+      if (running) {
+        log('cambio de tab, deteniendo');
+        stop(btn);
       }
     });
-  }, 0);
-});
+  });
+
+  document.addEventListener('keydown', (e) => {
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea') return;
+    if (e.key === ' ') {
+      e.preventDefault();
+      if (running) stop(btn);
+      else start(btn);
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Escape') {
+      if (running) stop(btn);
+    }
+  });
+
+  log('listo ✓');
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => init());
+} else {
+  init();
+}
