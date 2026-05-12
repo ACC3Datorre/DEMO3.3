@@ -187,7 +187,10 @@ function switchTab(tab) {
 function wireEvents() {
   // Tabs (existen al cargar el HTML)
   $$('.tab').forEach((btn) => {
-    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    btn.addEventListener('click', () => {
+      autorun.stop(); // detener autoplay si está corriendo
+      switchTab(btn.dataset.tab);
+    });
   });
 
   // Toggle de tema
@@ -197,7 +200,11 @@ function wireEvents() {
   // Stepper: delegación porque los .step se re-renderizan en cada cambio.
   $id('steps').addEventListener('click', (e) => {
     const stepEl = e.target.closest('.step');
-    if (stepEl) goToStep(stepEl.dataset.step);
+    if (stepEl) {
+      // Si el click viene del autoplay (programático), no detener.
+      if (!autorun.isAutoClick()) autorun.stop();
+      goToStep(stepEl.dataset.step);
+    }
   });
   // También accesible por teclado (Enter/Espacio sobre un .step con tabindex)
   $id('steps').addEventListener('keydown', (e) => {
@@ -205,6 +212,7 @@ function wireEvents() {
     const stepEl = e.target.closest('.step');
     if (stepEl) {
       e.preventDefault();
+      autorun.stop();
       goToStep(stepEl.dataset.step);
     }
   });
@@ -214,27 +222,167 @@ function wireEvents() {
   $id('configView').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
+    autorun.stop();
     if (btn.dataset.action === 'next') goNext();
     if (btn.dataset.action === 'prev') goPrev();
   });
 
   // Tecla Esc: vuelve al primer paso (cierra cualquier "panel" lógico abierto).
-  // Si más adelante hay modales, este es el único punto a tocar.
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && state.idx !== 0) {
+      autorun.stop();
       state.idx = 0;
       render();
     }
   });
 
-  // Flechas izquierda / derecha para navegar pasos (ignoradas dentro de inputs/textareas).
+  // Flechas izquierda / derecha para navegar pasos.
   document.addEventListener('keydown', (e) => {
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'textarea') return;
-    if (e.key === 'ArrowRight') goNext();
-    if (e.key === 'ArrowLeft') goPrev();
+    if (e.key === 'ArrowRight') { autorun.stop(); goNext(); }
+    if (e.key === 'ArrowLeft')  { autorun.stop(); goPrev(); }
+  });
+
+  // Atajo Espacio: toggle play / pause del autorun.
+  document.addEventListener('keydown', (e) => {
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea') return;
+    if (e.key === ' ') {
+      e.preventDefault();
+      autorun.toggle();
+    }
   });
 }
+
+// =============================================================
+// Auto-run (Ejecutar demo): avanza paso a paso automáticamente.
+// =============================================================
+const autorun = (() => {
+  const STEP_DELAY = 1800;   // ms entre pasos. Subilo o bajalo a gusto.
+  let running = false;
+  let timeoutId = null;
+  let autoClickFlag = false; // se pone true mientras el autoplay clickea
+
+  const log = (...a) => console.log('[autorun]', ...a);
+
+  /** El handler delegado del stepper consulta esto para no abortar el autoplay. */
+  function isAutoClick() { return autoClickFlag; }
+
+  /** Pinta el botón según el estado. */
+  function paintButton(mode) {
+    const btn = $id('runBtn');
+    if (!btn) return;
+    const label = btn.querySelector('.run-label');
+    const icon = btn.querySelector('.run-icon');
+    btn.classList.remove('running', 'done');
+    document.body.classList.remove('is-running');
+
+    if (mode === 'running') {
+      btn.classList.add('running');
+      document.body.classList.add('is-running');
+      if (icon) icon.textContent = '■';
+      if (label) label.textContent = 'Detener';
+    } else if (mode === 'done') {
+      btn.classList.add('done');
+      if (icon) icon.textContent = '↻';
+      if (label) label.textContent = 'Reiniciar';
+    } else {
+      if (icon) icon.textContent = '▶';
+      if (label) label.textContent = 'Ejecutar demo';
+    }
+  }
+
+  /** Tick del loop: avanza un paso si se puede, agenda el próximo. */
+  function tick() {
+    if (!running) return;
+    const total = currentSteps().length;
+    log('tick · idx=', state.idx, '/', total - 1);
+
+    if (state.idx >= total - 1) {
+      // Llegamos al final.
+      running = false;
+      paintButton('done');
+      log('terminado');
+      return;
+    }
+
+    // Avanzo un paso usando la API real de app.js.
+    autoClickFlag = true;
+    goNext();
+    autoClickFlag = false;
+
+    timeoutId = setTimeout(tick, STEP_DELAY);
+  }
+
+  /** Empieza la demo desde donde esté, o resetea si está al final. */
+  function start() {
+    if (running) return;
+    log('start');
+
+    const total = currentSteps().length;
+    if (total === 0) {
+      log('ERROR: no hay pasos en la tab actual');
+      return;
+    }
+
+    // Si está al final, primero vuelvo al inicio.
+    if (state.idx >= total - 1) {
+      state.idx = 0;
+      render();
+    }
+
+    running = true;
+    paintButton('running');
+    timeoutId = setTimeout(tick, STEP_DELAY);
+  }
+
+  /** Para el autoplay sin perder posición. */
+  function stop() {
+    if (!running && !timeoutId) return;
+    log('stop');
+    running = false;
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+    const total = currentSteps().length;
+    const done = total > 0 && state.idx >= total - 1;
+    paintButton(done ? 'done' : 'idle');
+  }
+
+  function toggle() {
+    if (running) stop();
+    else start();
+  }
+
+  /** Inyecta el botón en la top bar. */
+  function injectButton() {
+    if ($id('runBtn')) return; // ya existe
+
+    const top = document.querySelector('.top');
+    const themeBtn = $id('themeToggle');
+    if (!top) {
+      log('ERROR: no se encontró .top');
+      return;
+    }
+
+    const btn = document.createElement('button');
+    btn.id = 'runBtn';
+    btn.type = 'button';
+    btn.className = 'run-btn';
+    btn.setAttribute('aria-label', 'Ejecutar la demo');
+    btn.innerHTML = '<span class="run-icon">▶</span><span class="run-label">Ejecutar demo</span>';
+
+    if (themeBtn) top.insertBefore(btn, themeBtn);
+    else top.appendChild(btn);
+
+    btn.addEventListener('click', toggle);
+    log('botón inyectado');
+  }
+
+  return { start, stop, toggle, isAutoClick, injectButton };
+})();
 
 // -------------------------------------------------------------
 // Inicialización
@@ -243,4 +391,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   wireEvents();
   render();
+  autorun.injectButton();
 });
