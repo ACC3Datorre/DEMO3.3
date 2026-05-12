@@ -14,3 +14,7 @@ export const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
 /** Limita un valor entre min y max. */
 export const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+
+/** Detecta si el usuario prefiere movimiento reducido (accesibilidad). */
+export const prefersReducedMotion = () =>
+  window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
