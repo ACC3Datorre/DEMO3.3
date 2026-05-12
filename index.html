@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Copilot Studio Demo - Agente Comité Ejecutivo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <div class="top">
+      <div class="logo">C</div>
+      <div class="title">Demo · Copilot Studio · Agente Preparador de Comité Ejecutivo</div>
+      <div class="pill">Caso realista M365</div>
+      <button id="themeToggle" class="theme-toggle" type="button" aria-label="Cambiar tema">☀️</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="config" type="button">1 · Configuración en Copilot Studio</button>
+      <button class="tab" data-tab="business" type="button">2 · Vista usuario final</button>
+    </div>
+
+    <!-- Barra de progreso decorativa estilo DEMO4 -->
+    <div class="progress-bar">
+      <div class="progress-track">
+        <div class="progress-fill"></div>
+      </div>
+    </div>
+
+    <div class="main">
+      <aside class="stepper">
+        <h3 id="sideTitle">Paso a paso</h3>
+        <div class="steps" id="steps"></div>
+      </aside>
+
+      <main class="content">
+        <section id="configView" class="builder card"></section>
+        <section id="businessView" class="business hidden"></section>
+      </main>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+  <script type="module" src="runner.js"></script>
+</body>
+</html>
