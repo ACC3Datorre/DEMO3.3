@@ -117,6 +117,34 @@ function teamsShell(msgs) {
     </div>`;
 }
 
+/** Actualiza el contador "Fase X / Y · Nombre" y el status sutil del agente. */
+function updateMeta() {
+  const steps = currentSteps();
+  const cur = state.idx;
+  const total = steps.length;
+  const name = steps[cur] ? steps[cur].t : '';
+
+  // Contador "Fase X / Y · Nombre"
+  let meta = $id('phaseMeta');
+  if (!meta) {
+    const bar = document.querySelector('.progress-bar');
+    if (bar) {
+      meta = document.createElement('div');
+      meta.id = 'phaseMeta';
+      meta.className = 'phase-meta';
+      bar.parentNode.insertBefore(meta, bar);
+    }
+  }
+  if (meta) {
+    meta.innerHTML = `
+      <span class="pm-count">Fase <b>${cur + 1}</b> <span class="pm-sep">/</span> <b>${total}</b></span>
+      <span class="pm-dot"></span>
+      <span class="pm-name">${name}</span>
+      <span class="pm-status" id="phaseStatus">Listo</span>
+    `;
+  }
+}
+
 /** Repinta toda la UI según el estado actual. */
 function render() {
   // Tabs
@@ -146,6 +174,9 @@ function render() {
     const msgs = bizSteps.slice(0, state.idx + 1).map((s) => s.html()).join('');
     $id('businessView').innerHTML = teamsShell(msgs);
   }
+
+  // Contador + status sutil
+  updateMeta();
 }
 
 // -------------------------------------------------------------
@@ -290,6 +321,21 @@ const autorun = (() => {
     } else {
       if (icon) icon.textContent = '▶';
       if (label) label.textContent = 'Ejecutar demo';
+    }
+
+    // Status sutil del agente en la barra de meta
+    const status = $id('phaseStatus');
+    if (status) {
+      status.classList.remove('on', 'ok');
+      if (mode === 'running') {
+        status.textContent = 'Ejecutando…';
+        status.classList.add('on');
+      } else if (mode === 'done') {
+        status.textContent = 'Completado';
+        status.classList.add('ok');
+      } else {
+        status.textContent = 'Listo';
+      }
     }
   }
 
