@@ -1696,3 +1696,152 @@ body.is-running .slide-regions span:nth-child(7) { animation-delay: 0.76s; }
 @media (prefers-reduced-motion: reduce) {
   body.is-running * { animation: none !important; }
 }
+
+/* =============================================================
+   Phase meta · Contador "Fase X / Y · Nombre · Status"
+   Va arriba de la barra de progreso.
+   ============================================================= */
+.phase-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 22px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+  color: var(--muted);
+  font-family: var(--font-body);
+  position: relative;
+  z-index: 1;
+}
+
+.pm-count {
+  font-family: var(--font-mono);
+  color: var(--muted);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  letter-spacing: 0.02em;
+}
+.pm-count b {
+  color: var(--text);
+  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.pm-sep {
+  color: var(--mute-2);
+  opacity: 0.6;
+  font-size: 11px;
+}
+
+.pm-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--mute-2);
+  flex: 0 0 auto;
+  transition: all 0.3s ease;
+}
+
+.pm-name {
+  color: var(--text);
+  font-weight: 600;
+  font-family: var(--font-display);
+  letter-spacing: -0.005em;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pm-status {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--bg-2);
+  color: var(--mute-2);
+  border: 1px solid var(--line);
+  font-family: var(--font-display);
+  flex: 0 0 auto;
+  transition: all 0.25s ease;
+}
+
+/* Estados del status sutil */
+.pm-status.on {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent-glow);
+}
+.pm-status.ok {
+  background: var(--ok-soft);
+  color: var(--ok);
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+/* Cuando corre el autoplay: pulso sutil en el dot y un destello en el name */
+body.is-running .pm-dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+  animation: pm-dot-pulse 1.4s ease-in-out infinite;
+}
+@keyframes pm-dot-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px var(--accent-soft); }
+  50%      { box-shadow: 0 0 0 8px var(--accent-soft); transform: scale(1.1); }
+}
+
+body.is-running .pm-name {
+  background: linear-gradient(90deg, var(--text), var(--accent), var(--text));
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: pm-name-shine 2.4s linear infinite;
+}
+@keyframes pm-name-shine {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+body.is-running .pm-status.on::before {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-right: 6px;
+  vertical-align: middle;
+  animation: pm-status-blink 1s ease-in-out infinite;
+}
+@keyframes pm-status-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Cuando termina, el contador respira con verde un instante */
+body:not(.is-running) .pm-status.ok {
+  animation: pm-done-flash 0.6s ease;
+}
+@keyframes pm-done-flash {
+  0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+  40%  { transform: scale(1.08); box-shadow: 0 0 0 6px rgba(74, 222, 128, 0.18); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .phase-meta {
+    padding: 8px 14px;
+    gap: 8px;
+    font-size: 11.5px;
+    flex-wrap: wrap;
+  }
+  .pm-name { font-size: 12px; }
+  .pm-status { padding: 2px 8px; font-size: 9.5px; }
+}
