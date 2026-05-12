@@ -12,7 +12,7 @@
 // para dark bajo `[data-theme="dark"]`, sin duplicar reglas.
 // =============================================================
 
-const STORAGE_KEY = 'demo-theme';
+const STORAGE_KEY = 'demo-theme-v2';
 const root = document.documentElement;
 
 /** Devuelve 'dark' si el SO lo prefiere, 'light' si no. */
