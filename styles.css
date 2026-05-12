@@ -1618,17 +1618,26 @@ body.is-running .slide-kpis .kpi:nth-child(3) { animation-delay: 0.49s; }
 }
 
 /* =============================================================
-   Vista business: layout SIMPLE Y ROBUSTO
+   Vista business: layout SIMPLE Y ROBUSTO (v2)
    - El panel derecho ("Qué ve el usuario") va SIEMPRE abajo del
      mockup de Teams para que el chat tenga todo el ancho.
-   - El chat tiene un mínimo razonable.
-   - El footer del Teams card queda pegado abajo.
+   - Usa !important quirúrgicamente para vencer reglas previas.
    ============================================================= */
+
+/* El section padre tampoco debe hacer grid */
+#businessView.business {
+  display: block !important;
+  grid-template-columns: none !important;
+  max-width: 1180px;
+  margin: 0 auto;
+  width: 100%;
+}
 
 /* Stack vertical: Teams arriba, panel info abajo */
 .biz-main {
-  display: flex;
-  flex-direction: column;
+  display: flex !important;
+  flex-direction: column !important;
+  grid-template-columns: none !important;
   gap: 16px;
   max-width: 1180px;
   margin: 0 auto;
@@ -1638,9 +1647,9 @@ body.is-running .slide-kpis .kpi:nth-child(3) { animation-delay: 0.49s; }
 
 /* Card de Teams: flex column, footer pegado abajo */
 .biz-main .teams {
-  display: flex;
-  flex-direction: column;
-  height: 640px;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 640px !important;
   overflow: hidden;
   width: 100%;
 }
@@ -1649,9 +1658,9 @@ body.is-running .slide-kpis .kpi:nth-child(3) { animation-delay: 0.49s; }
 .biz-main .teams .teams-body {
   flex: 1;
   min-height: 0;
-  height: auto;
-  display: grid;
-  grid-template-columns: 56px 200px minmax(0, 1fr);
+  height: auto !important;
+  display: grid !important;
+  grid-template-columns: 56px 200px minmax(0, 1fr) !important;
 }
 
 /* Footer del Teams: prev/next */
@@ -1698,32 +1707,33 @@ body.is-running .slide-kpis .kpi:nth-child(3) { animation-delay: 0.49s; }
 .biz-main .agent > .bubble {
   flex: 1 1 auto;
   min-width: 0;
-  max-width: 100%;
+  max-width: 100% !important;
   overflow-wrap: break-word;
   word-wrap: break-word;
   word-break: normal;
 }
 
-/* Panel derecho ahora va abajo en horizontal: 2 cards lado a lado en desktop */
+/* Panel derecho: 2 cards lado a lado en desktop, una abajo de otra en mobile */
 .biz-main .right-panel {
-  display: grid;
+  display: grid !important;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+  flex-direction: row !important;
 }
 
 /* Responsive */
 @media (max-width: 900px) {
   .biz-main .teams .teams-body {
-    grid-template-columns: 56px 160px minmax(0, 1fr);
+    grid-template-columns: 56px 160px minmax(0, 1fr) !important;
   }
   .biz-main .right-panel {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
   }
 }
 @media (max-width: 600px) {
-  .biz-main .teams { height: auto; }
+  .biz-main .teams { height: auto !important; }
   .biz-main .teams .teams-body {
-    display: block;
+    display: block !important;
   }
   .biz-main .rail,
   .biz-main .chatlist { display: none; }
