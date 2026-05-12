@@ -1600,3 +1600,72 @@ body.is-running .slide-kpis .kpi:nth-child(3) { animation-delay: 0.49s; }
   .messages { padding: 12px; }
   .bubble { padding: 12px; }
 }
+
+/* =============================================================
+   Vista business: layout para que el footer quede abajo, chat scrolleable
+   ============================================================= */
+.biz-main {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  max-width: 1180px;
+  margin: 0 auto;
+  height: 100%;
+  min-height: 0;
+}
+
+/* La card de Teams ahora es un flex column con footer abajo */
+.biz-main .teams {
+  display: flex;
+  flex-direction: column;
+  height: 720px;
+  overflow: hidden;
+}
+
+/* El cuerpo de Teams se achica para dejar lugar al footer */
+.biz-main .teams .teams-body {
+  flex: 1;
+  min-height: 0;
+  height: auto; /* override del 672px fijo anterior */
+}
+
+/* El footer del business view: mismo look del builder */
+.biz-main .teams .footer-controls {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--line);
+  background: var(--panel-2);
+}
+
+/* Asegurar que .messages tenga scroll real */
+.biz-main .chat {
+  min-height: 0;
+}
+.biz-main .messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.biz-main .messages::-webkit-scrollbar { width: 6px; }
+.biz-main .messages::-webkit-scrollbar-track { background: transparent; }
+.biz-main .messages::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 3px;
+}
+.biz-main .messages::-webkit-scrollbar-thumb:hover { background: var(--mute-2); }
+
+/* Mobile: layout en columna */
+@media (max-width: 1180px) {
+  .biz-main {
+    grid-template-columns: 1fr;
+    max-width: 100%;
+    height: auto;
+  }
+  .biz-main .teams { height: 640px; }
+}
+@media (max-width: 768px) {
+  .biz-main .teams { height: auto; }
+  .biz-main .teams .messages { max-height: 420px; }
+}
