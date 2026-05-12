@@ -73,45 +73,52 @@ function teamsShell(msgs) {
     .join('');
 
   return `
-    <div class="card teams">
-      <div class="teams-head">
-        <b>Microsoft Teams</b>
-        <span class="pill">Copilot agent</span>
-      </div>
-      <div class="teams-body">
-        <div class="rail">
-          <div>💬</div>
-          <div class="on">🤖</div>
-          <div>📁</div>
-          <div>📅</div>
+    <div class="biz-main">
+      <div class="card teams">
+        <div class="teams-head">
+          <b>Microsoft Teams</b>
+          <span class="pill">Copilot agent</span>
         </div>
-        <div class="chatlist">
-          <h3 style="font-size:14px;margin:4px 0 12px">Chats</h3>
-          <div class="chatitem on">
-            <b>Preparador de Comité</b>
-            <div class="small">Brief semanal listo</div>
+        <div class="teams-body">
+          <div class="rail">
+            <div>💬</div>
+            <div class="on">🤖</div>
+            <div>📁</div>
+            <div>📅</div>
           </div>
-          <div class="chatitem">
-            <b>CFO Office</b>
-            <div class="small">Equipo</div>
+          <div class="chatlist">
+            <h3 style="font-size:14px;margin:4px 0 12px">Chats</h3>
+            <div class="chatitem on">
+              <b>Preparador de Comité</b>
+              <div class="small">Brief semanal listo</div>
+            </div>
+            <div class="chatitem">
+              <b>CFO Office</b>
+              <div class="small">Equipo</div>
+            </div>
+          </div>
+          <div class="chat">
+            <div class="chat-title">Preparador de Comité Ejecutivo</div>
+            <div class="messages fade" id="bizMessages">${msgs}</div>
           </div>
         </div>
-        <div class="chat">
-          <div class="chat-title">Preparador de Comité Ejecutivo</div>
-          <div class="messages fade">${msgs}</div>
+        <div class="footer-controls">
+          <button class="btn" data-action="prev">← Anterior</button>
+          <div class="progress">Paso ${state.idx + 1} de ${bizSteps.length}</div>
+          <button class="btn primary" data-action="next">Siguiente →</button>
         </div>
       </div>
-    </div>
-    <div class="right-panel">
-      <div class="card mini">
-        <h3>Qué ve el usuario</h3>
-        <div class="timeline">${timeline}</div>
-      </div>
-      <div class="card mini">
-        <h3>Límites reales</h3>
-        <div class="small">
-          El agente resume información disponible, muestra fuentes y pide confirmación antes de enviar.
-          No decide ni inventa datos faltantes.
+      <div class="right-panel">
+        <div class="card mini">
+          <h3>Qué ve el usuario</h3>
+          <div class="timeline">${timeline}</div>
+        </div>
+        <div class="card mini">
+          <h3>Límites reales</h3>
+          <div class="small">
+            El agente resume información disponible, muestra fuentes y pide confirmación antes de enviar.
+            No decide ni inventa datos faltantes.
+          </div>
         </div>
       </div>
     </div>`;
@@ -173,6 +180,12 @@ function render() {
   } else {
     const msgs = bizSteps.slice(0, state.idx + 1).map((s) => s.html()).join('');
     $id('businessView').innerHTML = teamsShell(msgs);
+
+    // Auto-scroll: llevar el chat al último mensaje
+    requestAnimationFrame(() => {
+      const chat = $id('bizMessages');
+      if (chat) chat.scrollTop = chat.scrollHeight;
+    });
   }
 
   // Contador + status sutil
@@ -248,15 +261,17 @@ function wireEvents() {
     }
   });
 
-  // Botones prev/next: viven dentro de configView y se re-renderizan,
+  // Botones prev/next: viven dentro de configView y businessView y se re-renderizan,
   // así que se enganchan por delegación a través del data-action.
-  $id('configView').addEventListener('click', (e) => {
+  const handleDataAction = (e) => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
     autorun.stop();
     if (btn.dataset.action === 'next') goNext();
     if (btn.dataset.action === 'prev') goPrev();
-  });
+  };
+  $id('configView').addEventListener('click', handleDataAction);
+  $id('businessView').addEventListener('click', handleDataAction);
 
   // Tecla Esc: vuelve al primer paso (cierra cualquier "panel" lógico abierto).
   document.addEventListener('keydown', (e) => {
